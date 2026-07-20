@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>TradeVision AI V2</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="layout">
+  <aside>
+    <h1>TradeVision AI</h1><small>Versión 2</small>
+    <nav>
+      <button class="nav active" data-view="dashboard">Dashboard</button>
+      <button class="nav" data-view="portfolios">Carteras</button>
+      <button class="nav" data-view="prices">Cotizaciones</button>
+      <button class="nav" data-view="movements">Movimientos</button>
+      <button class="nav" data-view="alerts">Alertas</button>
+      <button class="nav" data-view="settings">Configuración</button>
+    </nav>
+    <div class="legal">Uso educativo. No constituye asesoramiento financiero.</div>
+  </aside>
+
+  <main>
+    <header>
+      <div><h2 id="title">Dashboard</h2><p id="subtitle">Resumen general</p></div>
+      <div class="actions">
+        <button id="backup" class="secondary">Backup JSON</button>
+        <button onclick="window.print()">Imprimir / PDF</button>
+      </div>
+    </header>
+
+    <section id="dashboard" class="view active">
+      <div id="metrics" class="metrics"></div>
+      <div class="grid2">
+        <article class="card"><h3>Distribución por cartera</h3><div id="bars"></div></article>
+        <article class="card"><h3>Alertas recientes</h3><div id="recent-alerts"></div></article>
+      </div>
+      <article class="card"><h3>Posiciones</h3><div class="table"><table id="summary"></table></div></article>
+    </section>
+
+    <section id="portfolios" class="view">
+      <div class="toolbar"><button id="new-portfolio">Nueva cartera</button></div>
+      <div id="portfolio-list"></div>
+    </section>
+
+    <section id="prices" class="view">
+      <article class="card">
+        <div class="cardhead">
+          <div><h3>Actualización de precios</h3><p>La fuente declarada puede ser BYMADATA Open. La carga es manual o por CSV.</p></div>
+          <a class="button secondary" href="https://open.bymadata.com.ar/#/dashboard" target="_blank" rel="noopener">Abrir BYMADATA</a>
+        </div>
+        <div class="toolbar">
+          <button id="quick-price">Actualizar un precio</button>
+          <label class="button secondary file">Importar CSV<input id="csv-file" type="file" accept=".csv,text/csv"></label>
+          <button id="download-template" class="secondary">Descargar plantilla</button>
+        </div>
+        <div class="notice">Formato CSV: <b>ticker,precio,moneda,fecha,fuente</b>. Ejemplo: AAPL,18250,ARS,2026-07-20,BYMADATA Open.</div>
+        <div class="table"><table id="prices-table"></table></div>
+      </article>
+    </section>
+
+    <section id="movements" class="view">
+      <div class="toolbar"><button id="new-movement">Registrar movimiento</button><button id="export-csv" class="secondary">Exportar CSV</button></div>
+      <article class="card"><div class="table"><table id="movements-table"></table></div></article>
+    </section>
+
+    <section id="alerts" class="view">
+      <div class="toolbar">
+        <button id="evaluate">Evaluar señales</button>
+        <button id="send-alerts">Evaluar y enviar email</button>
+        <button id="test-email" class="secondary">Enviar correo de prueba</button>
+      </div>
+      <div class="notice">El envío usa una Netlify Function y la variable privada <b>RESEND_API_KEY</b>. El destinatario se toma de Configuración.</div>
+      <div id="email-status"></div>
+      <div id="alerts-list"></div>
+    </section>
+
+    <section id="settings" class="view">
+      <article class="card form">
+        <h3>Configuración</h3>
+        <label>Email receptor<input id="email" type="email"></label>
+        <label>Nombre del remitente<input id="sender-name" value="TradeVision AI"></label>
+        <label>Fuente predeterminada<input id="default-source" value="BYMADATA Open"></label>
+        <label>Antigüedad máxima del precio
+          <select id="stale-hours"><option value="12">12 horas</option><option value="24">24 horas</option><option value="48">48 horas</option><option value="168">7 días</option></select>
+        </label>
+        <button id="save-settings">Guardar</button>
+      </article>
+      <article class="card"><h3>Códigos</h3><p>CP: medias 20/50 · MP: 50/100 · LP: 200/400 · DCA: compra periódica · TC: trade corto.</p></article>
+    </section>
+  </main>
+</div>
+
+<dialog id="modal">
+  <form method="dialog" id="modal-form">
+    <div class="modalhead"><h3 id="modal-title"></h3><button value="cancel" class="x">×</button></div>
+    <div id="modal-body" class="formgrid"></div>
+    <div class="modalactions"><button value="cancel" class="secondary">Cancelar</button><button id="modal-save" value="default">Guardar</button></div>
+  </form>
+</dialog>
+<script src="app.js"></script>
+</body></html>
