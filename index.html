@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>TradeVision AI V2</title>
+  <title>TradeVision AI V3</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <div class="layout">
   <aside>
-    <h1>TradeVision AI</h1><small>Versión 2</small>
+    <h1>TradeVision AI</h1><small>Versión 3 · memoria permanente</small>
     <nav>
       <button class="nav active" data-view="dashboard">Dashboard</button>
       <button class="nav" data-view="portfolios">Carteras</button>
@@ -25,6 +25,7 @@
     <header>
       <div><h2 id="title">Dashboard</h2><p id="subtitle">Resumen general</p></div>
       <div class="actions">
+        <span id="storage-status" class="storage-status loading">Conectando con la memoria…</span>
         <button id="backup" class="secondary">Backup JSON</button>
         <button onclick="window.print()">Imprimir / PDF</button>
       </div>

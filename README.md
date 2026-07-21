@@ -44,3 +44,14 @@ Formato:
 
 ## Persistencia
 Las carteras siguen guardándose en `localStorage` del navegador. Si cambiás de computadora o navegador, usá el botón Backup JSON. Para persistencia multiusuario y alertas automáticas con la página cerrada, la siguiente mejora debe incorporar una base de datos.
+
+
+## Versión 3: memoria permanente
+
+Esta versión agrega almacenamiento en Supabase mediante las Netlify Functions `load-state` y `save-state`.
+
+Variables requeridas en Netlify:
+- `SUPABASE_URL`
+- `SUPABASE_SECRET_KEY`
+
+La tabla esperada es `public.app_state`, con una fila identificada por `storage_key = main`. El navegador mantiene `localStorage` como respaldo y migra automáticamente los datos la primera vez que Supabase está vacío.

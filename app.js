@@ -7,9 +7,34 @@ const demo={settings:{email:"",senderName:"TradeVision AI",defaultSource:"BYMADA
 {ticker:"QQQ",name:"ETF Nasdaq 100",qty:10,price:28700,cost:27000,currency:"ARS",source:"Demo",updatedAt:"2026-07-20T12:00:00"}]}],
 movements:[{date:"2026-07-05",portfolio:"P002",type:"Depósito",ticker:"-",qty:0,amount:400000,currency:"ARS"}],
 alerts:[{date:"2026-07-20",level:"Info",ticker:"AAPL",horizon:"MP",text:"Alerta demostrativa inicial."}]};
-let state=load(),modalAction=null;
-function load(){try{return JSON.parse(localStorage.getItem(KEY))||structuredClone(demo)}catch{return structuredClone(demo)}}
-function save(){localStorage.setItem(KEY,JSON.stringify(state));render()}
+let state=loadLocal(),modalAction=null,saveTimer=null,isReady=false;
+function loadLocal(){try{return JSON.parse(localStorage.getItem(KEY))||structuredClone(demo)}catch{return structuredClone(demo)}}
+function setStorageStatus(kind,text){const el=document.getElementById("storage-status");if(!el)return;el.className=`storage-status ${kind}`;el.textContent=text}
+async function loadCloudState(){
+ setStorageStatus("loading","Conectando con la memoria…");
+ try{
+  const r=await fetch("/.netlify/functions/load-state",{cache:"no-store"});
+  const data=await r.json();
+  if(!r.ok)throw new Error(data.error||"No se pudo cargar la memoria.");
+  if(data.found&&data.state){state=data.state;localStorage.setItem(KEY,JSON.stringify(state));setStorageStatus("ok","Memoria sincronizada")}
+  else{setStorageStatus("loading","Migrando datos locales…");await saveCloudState();setStorageStatus("ok","Memoria creada y sincronizada")}
+ }catch(err){console.error(err);setStorageStatus("error","Sin conexión a la memoria · usando respaldo local")}
+ finally{isReady=true;render()}
+}
+async function saveCloudState(){
+ const r=await fetch("/.netlify/functions/save-state",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({state})});
+ const data=await r.json();
+ if(!r.ok)throw new Error(data.error||"No se pudo guardar la memoria.");
+ return data
+}
+function save(){
+ localStorage.setItem(KEY,JSON.stringify(state));
+ render();
+ if(!isReady)return;
+ clearTimeout(saveTimer);
+ setStorageStatus("loading","Guardando…");
+ saveTimer=setTimeout(async()=>{try{await saveCloudState();setStorageStatus("ok","Guardado en la memoria")}catch(err){console.error(err);setStorageStatus("error","No se pudo guardar · quedó respaldo local")}},450)
+}
 function money(n,c="ARS"){return new Intl.NumberFormat("es-AR",{style:"currency",currency:["MEP","CCL"].includes(c)?"USD":c,maximumFractionDigits:2}).format(+n||0)}
 function pnl(a){return a.cost?((a.price-a.cost)/a.cost)*100:0}
 function val(a){return a.qty*a.price}
@@ -56,3 +81,4 @@ document.getElementById("backup").onclick=()=>download("tradevision-v2-backup.js
 document.getElementById("export-csv").onclick=()=>download("movimientos.csv",["fecha,cartera,tipo,ticker,cantidad,monto,moneda",...state.movements.map(m=>[m.date,m.portfolio,m.type,m.ticker,m.qty,m.amount,m.currency].join(","))].join("\n"),"text/csv");
 function download(name,text,type){let a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click();URL.revokeObjectURL(a.href)}
 render();
+loadCloudState();
