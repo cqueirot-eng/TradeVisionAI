@@ -270,8 +270,8 @@ function theoreticalCedearPrice(ticker){
     !cedear ||
     !Number.isFinite(Number(cedear.ratioCedears)) ||
     Number(cedear.ratioCedears)<=0 ||
-    !Number.isFinite(Number(cedear.ratioUnderlying)) ||
-    Number(cedear.ratioUnderlying)<=0 ||
+    !Number.isFinite(Number(cedear.ratioSubyacente)) ||
+    Number(cedear.ratioSubyacente)<=0 ||
     ccl<=0
   ){
     return null;
@@ -280,7 +280,7 @@ function theoreticalCedearPrice(ticker){
   return (
     Number(quote.currentPrice) *
     ccl *
-    Number(cedear.ratioUnderlying)
+    Number(cedear.ratioSubyacente)
   ) / Number(cedear.ratioCedears);
 }
 
@@ -823,9 +823,9 @@ function priceTable(){
             :null;
 
         const ratio=cedear
-          ?cedear.ratioText||
-            `${cedear.ratioCedears}:${cedear.ratioUnderlying}`
-          :"-";
+  ?cedear.ratioTexto||
+    `${cedear.ratioCedears}:${cedear.ratioSubyacente}`
+  :"-";
 
         return `
           <tr>
