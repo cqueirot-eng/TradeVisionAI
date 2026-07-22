@@ -9,8 +9,8 @@ const json = (body, status = 200) => new Response(JSON.stringify(body), {
 export default async (request) => {
   if (request.method !== "POST") return json({ error: "Método no permitido" }, 405);
 
-  const url = Netlify.env.get("SUPABASE_URL");
-  const key = Netlify.env.get("SUPABASE_SECRET_KEY");
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SECRET_KEY;
   if (!url || !key) return json({ error: "Faltan SUPABASE_URL o SUPABASE_SECRET_KEY en Netlify." }, 500);
 
   try {
