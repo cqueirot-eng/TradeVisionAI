@@ -11,8 +11,22 @@ const demo={
  },
 
 technical:{
-  QQQ:null
- },
+  QQQ:null,
+  BRKB:null,
+  DE:null,
+  ECL:null,
+  FSLR:null,
+  GLD:null,
+  IBIT:null,
+  LLY:null,
+  MCD:null,
+  META:null,
+  NEE:null,
+  NTES:null,
+  O:null,
+  TSLA:null,
+  WMT:null
+},
 
  portfolios:[
   {
@@ -105,23 +119,45 @@ if(
 ){
   next.settings.cclRate=0;
 }
+ 
  if(
   !next.technical||
   typeof next.technical!=="object"||
   Array.isArray(next.technical)
  ){
-  next.technical={
-   QQQ:null
-  };
+  next.technical={};
  }
 
- if(!Object.prototype.hasOwnProperty.call(
-  next.technical,
-  "QQQ"
- )){
-  next.technical.QQQ=null;
- }
- if(!Array.isArray(next.portfolios)){
+ const technicalTickers=[
+  "QQQ",
+  "BRKB",
+  "DE",
+  "ECL",
+  "FSLR",
+  "GLD",
+  "IBIT",
+  "LLY",
+  "MCD",
+  "META",
+  "NEE",
+  "NTES",
+  "O",
+  "TSLA",
+  "WMT"
+ ];
+
+ technicalTickers.forEach(ticker=>{
+  if(
+   !Object.prototype.hasOwnProperty.call(
+    next.technical,
+    ticker
+   )
+  ){
+   next.technical[ticker]=null;
+  }
+ });
+
+if(!Array.isArray(next.portfolios)){
   next.portfolios=[];
  }
 
@@ -575,6 +611,15 @@ document.querySelectorAll(".nav").forEach(button=>{
  };
 });
 
+function selectedTechnicalTicker(){
+ const select=
+  document.getElementById("technical-ticker");
+
+ return select
+  ?select.value
+  :"QQQ";
+}
+
 function technicalTone(value){
  if(value==="Alcista"){
   return "positive";
@@ -588,19 +633,47 @@ function technicalTone(value){
 }
 
 function renderTechnicalAnalysis(){
+
+ const ticker=
+  selectedTechnicalTicker();
+
  const statusElement=
   document.getElementById("technical-status");
 
  const analysisElement=
   document.getElementById("technical-analysis");
 
+ const formTitle=
+  document.getElementById("technical-form-title");
+
+ const diagnosticTitle=
+  document.getElementById("technical-diagnostic-title");
+
+ const saveButton=
+  document.getElementById("save-technical");
+
+ if(formTitle){
+  formTitle.textContent=
+   `Datos técnicos de ${ticker}`;
+ }
+
+ if(diagnosticTitle){
+  diagnosticTitle.textContent=
+   `Diagnóstico de ${ticker}`;
+ }
+
+ if(saveButton){
+  saveButton.textContent=
+   `Guardar y analizar ${ticker}`;
+ }
+
  if(!statusElement||!analysisElement){
   return;
  }
 
  const data=
-  state.technical&&state.technical.QQQ
-   ?state.technical.QQQ
+  state.technical&&state.technical[ticker]
+   ?state.technical[ticker]
    :null;
 
  const priceInput=
@@ -622,9 +695,15 @@ function renderTechnicalAnalysis(){
   document.getElementById("technical-rsi");
 
  if(!data){
+  priceInput.value="";
+  sma20Input.value="";
+  sma50Input.value="";
+  sma100Input.value="";
+  sma200Input.value="";
+  rsiInput.value="";
   statusElement.innerHTML=`
    <p>
-    Cargá los valores técnicos de QQQ para generar el análisis.
+    Cargá los valores técnicos de ${ticker} para generar el análisis.
    </p>
   `;
 
@@ -752,6 +831,19 @@ function renderTechnicalAnalysis(){
    .map(paragraph=>`<p>${paragraph}</p>`)
    .join("");
 }
+
+const technicalTickerSelect=
+ document.getElementById("technical-ticker");
+
+if(technicalTickerSelect){
+ technicalTickerSelect.addEventListener(
+  "change",
+  ()=>{
+   renderTechnicalAnalysis();
+  }
+ );
+}
+
 function render(){
  const allAssets=assets();
 
