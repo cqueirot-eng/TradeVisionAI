@@ -252,6 +252,38 @@ function money(number,currency="ARS"){
  ).format(+number||0);
 }
 
+function getCedearInfo(ticker){
+  const symbol=String(ticker||"").trim().toUpperCase();
+
+  return window.CEDEAR_DATA?.[symbol]||null;
+}
+
+function theoreticalCedearPrice(ticker){
+  const symbol=String(ticker||"").trim().toUpperCase();
+  const quote=state.marketQuotes?.[symbol];
+  const cedear=getCedearInfo(symbol);
+  const ccl=Number(state.settings?.cclRate)||0;
+
+  if(
+    !quote ||
+    !Number.isFinite(Number(quote.currentPrice)) ||
+    !cedear ||
+    !Number.isFinite(Number(cedear.ratioCedears)) ||
+    Number(cedear.ratioCedears)<=0 ||
+    !Number.isFinite(Number(cedear.ratioUnderlying)) ||
+    Number(cedear.ratioUnderlying)<=0 ||
+    ccl<=0
+  ){
+    return null;
+  }
+
+  return (
+    Number(quote.currentPrice) *
+    ccl *
+    Number(cedear.ratioUnderlying)
+  ) / Number(cedear.ratioCedears);
+}
+
 function pnl(asset){
  return asset.cost
   ?((asset.price-asset.cost)/asset.cost)*100
@@ -742,103 +774,146 @@ function portfolioList(){
 }
 
 function priceTable(){
- const tickers=[
-  ...new Set(
-   assets().map(asset=>
-    String(asset.ticker||"").toUpperCase()
-   )
-  )
- ];
+  const uniqueTickers=[
+    ...new Set(
+      assets().map(a=>
+        String(a.ticker||"")
+          .trim()
+          .toUpperCase()
+      )
+    )
+  ];
 
- document.getElementById("prices-table").innerHTML=`
-  <thead>
-   <tr>
-    <th>Ticker</th>
-    <th>Carteras</th>
-    <th>Precio local</th>
-    <th>Moneda</th>
-    <th>Referencia USD</th>
-    <th>Variación diaria</th>
-    <th>Fuente local</th>
-    <th>Actualización local</th>
-    <th>Mercado USD</th>
-   </tr>
-  </thead>
+  document.getElementById("prices-table").innerHTML=`
+    <thead>
+      <tr>
+        <th>Ticker</th>
+        <th>Carteras</th>
+        <th>Precio local</th>
+        <th>Referencia USD</th>
+        <th>Variación diaria</th>
+        <th>Ratio CEDEAR</th>
+        <th>Precio teórico ARS</th>
+        <th>Diferencia</th>
+        <th>Fuente local</th>
+        <th>Actualización local</th>
+        <th>Estado</th>
+      </tr>
+    </thead>
 
-  <tbody>
-   ${tickers.map(ticker=>{
-    const rows=assets().filter(asset=>
-     String(asset.ticker||"").toUpperCase()===ticker
-    );
+    <tbody>
+      ${uniqueTickers.map(ticker=>{
+        const rows=assets().filter(
+          asset=>
+            String(asset.ticker||"")
+              .trim()
+              .toUpperCase()===ticker
+        );
 
-    const asset=rows[0];
-    const quote=marketQuote(ticker);
+        const asset=rows[0];
+        const quote=state.marketQuotes?.[ticker];
+        const cedear=getCedearInfo(ticker);
+        const theoretical=theoreticalCedearPrice(ticker);
 
-    const change=
-     Number(quote?.changePercent||0);
+        const localPrice=Number(asset.price)||0;
 
-    return `
-     <tr>
-      <td><b>${ticker}</b></td>
+        const difference=
+          theoretical&&localPrice
+            ?((localPrice-theoretical)/theoretical)*100
+            :null;
 
-      <td>
-       ${rows.map(row=>row.pid).join(", ")}
-      </td>
+        const ratio=cedear
+          ?cedear.ratioText||
+            `${cedear.ratioCedears}:${cedear.ratioUnderlying}`
+          :"-";
 
-      <td>
-       ${money(asset.price,asset.currency)}
-      </td>
+        return `
+          <tr>
+            <td>
+              <b>${ticker}</b>
+            </td>
 
-      <td>${asset.currency}</td>
+            <td>
+              ${rows.map(row=>row.pid).join(", ")}
+            </td>
 
-      <td>
-       ${
-        quote
-         ?money(quote.currentPrice,"USD")
-         :"-"
-       }
-      </td>
+            <td>
+              ${money(localPrice,asset.currency)}
+            </td>
 
-      <td class="${
-       !quote
-        ?"neutral"
-        :change>=0
-         ?"positive"
-         :"negative"
-      }">
-       ${
-        quote
-         ?`${change>=0?"+":""}${change.toFixed(2)}%`
-         :"-"
-       }
-      </td>
+            <td>
+              ${quote
+                ?money(quote.currentPrice,"USD")
+                :"-"
+              }
+            </td>
 
-      <td>${asset.source||"-"}</td>
+            <td class="${
+              quote
+                ?quote.changePercent>=0
+                  ?"positive"
+                  :"negative"
+                :"neutral"
+            }">
+              ${quote
+                ?`${quote.changePercent>=0?"+":""}${quote.changePercent.toFixed(2)}%`
+                :"-"
+              }
+            </td>
 
-      <td>
-       ${
-        asset.updatedAt
-         ?new Date(asset.updatedAt).toLocaleString("es-AR")
-         :"-"
-       }
-      </td>
+            <td>
+              ${ratio}
+            </td>
 
-      <td class="${
-       quote&&marketQuoteFresh(quote)
-        ?"positive"
-        :"neutral"
-      }">
-       ${
-        quote
-         ?formatMarketDate(quote.fetchedAt)
-         :"Sin consultar"
-       }
-      </td>
-     </tr>
-    `;
-   }).join("")}
-  </tbody>
- `;
+            <td>
+              ${theoretical!==null
+                ?money(theoretical,"ARS")
+                :"-"
+              }
+            </td>
+
+            <td class="${
+              difference===null
+                ?"neutral"
+                :Math.abs(difference)<=1
+                  ?"positive"
+                  :difference>0
+                    ?"negative"
+                    :"neutral"
+            }">
+              ${difference===null
+                ?"-"
+                :`${difference>=0?"+":""}${difference.toFixed(2)}%`
+              }
+            </td>
+
+            <td>
+              ${asset.source||"-"}
+            </td>
+
+            <td>
+              ${asset.updatedAt
+                ?new Date(asset.updatedAt)
+                  .toLocaleString("es-AR")
+                :"-"
+              }
+            </td>
+
+            <td class="${
+              stale(asset)
+                ?"neutral"
+                :"positive"
+            }">
+              ${stale(asset)
+                ?"Desactualizado"
+                :"Vigente"
+              }
+            </td>
+          </tr>
+        `;
+      }).join("")}
+    </tbody>
+  `;
 }
 
 function movementTable(){
