@@ -2146,10 +2146,16 @@ document.getElementById("save-settings").onclick=
     +document.getElementById("stale-hours")
      .value,
 
-cclRate:
-  +document.getElementById("ccl-rate")
-    .value
+   cclRate:
+    +document.getElementById("ccl-rate")
+     .value
   };
+
+  save();
+  alert("Configuración guardada.");
+ };
+
+
 document.getElementById("save-technical").onclick=
  ()=>{
   const data={
@@ -2212,10 +2218,6 @@ document.getElementById("save-technical").onclick=
   alert(
    `Análisis de QQQ guardado.\n\nScore técnico: ${result.score}/100`
   );
- };
-
-  save();
-  alert("Configuración guardada.");
  };
 
 document.getElementById("backup").onclick=()=>{
