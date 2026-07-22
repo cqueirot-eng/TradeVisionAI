@@ -9,6 +9,11 @@ const demo={
   staleHours:24,
   cclRate:0
  },
+
+technical:{
+  QQQ:null
+ },
+
  portfolios:[
   {
    id:"P001",
@@ -100,6 +105,22 @@ if(
 ){
   next.settings.cclRate=0;
 }
+ if(
+  !next.technical||
+  typeof next.technical!=="object"||
+  Array.isArray(next.technical)
+ ){
+  next.technical={
+   QQQ:null
+  };
+ }
+
+ if(!Object.prototype.hasOwnProperty.call(
+  next.technical,
+  "QQQ"
+ )){
+  next.technical.QQQ=null;
+ }
  if(!Array.isArray(next.portfolios)){
   next.portfolios=[];
  }
@@ -282,6 +303,435 @@ function theoreticalCedearPrice(ticker){
     ccl *
     Number(cedear.ratioSubyacente)
   ) / Number(cedear.ratioCedears);
+}
+
+function technicalNumber(value){
+ const number=Number(value);
+
+ return Number.isFinite(number)
+  ?number
+  :0;
+}
+
+function getTechnicalData(){
+ return state.technical?.QQQ||null;
+}
+
+function technicalDistance(price,average){
+ if(!price||!average){
+  return null;
+ }
+
+ return ((price-average)/average)*100;
+}
+
+function technicalRsiStatus(rsi){
+ if(rsi>=70){
+  return {
+   label:"Sobrecompra",
+   className:"negative",
+   score:-5
+  };
+ }
+
+ if(rsi>=60){
+  return {
+   label:"Impulso fuerte",
+   className:"positive",
+   score:10
+  };
+ }
+
+ if(rsi>=45){
+  return {
+   label:"Neutral",
+   className:"neutral",
+   score:5
+  };
+ }
+
+ if(rsi>=30){
+  return {
+   label:"Impulso débil",
+   className:"neutral",
+   score:0
+  };
+ }
+
+ return {
+  label:"Sobreventa",
+  className:"positive",
+  score:5
+ };
+}
+
+function calculateTechnicalAnalysis(data){
+ if(!data){
+  return null;
+ }
+
+ const price=technicalNumber(data.price);
+ const sma20=technicalNumber(data.sma20);
+ const sma50=technicalNumber(data.sma50);
+ const sma100=technicalNumber(data.sma100);
+ const sma200=technicalNumber(data.sma200);
+ const rsi=technicalNumber(data.rsi);
+
+ if(
+  price<=0||
+  sma20<=0||
+  sma50<=0||
+  sma100<=0||
+  sma200<=0||
+  rsi<=0||
+  rsi>100
+ ){
+  return null;
+ }
+
+ let score=0;
+
+ /*
+  Largo plazo: máximo 30 puntos
+ */
+
+ if(price>sma200){
+  score+=15;
+ }
+
+ if(sma100>sma200){
+  score+=10;
+ }
+
+ if(price>sma100){
+  score+=5;
+ }
+
+ /*
+  Mediano plazo: máximo 25 puntos
+ */
+
+ if(price>sma50){
+  score+=10;
+ }
+
+ if(sma50>sma100){
+  score+=10;
+ }
+
+ if(sma100>sma200){
+  score+=5;
+ }
+
+ /*
+  Corto plazo: máximo 25 puntos
+ */
+
+ if(price>sma20){
+  score+=10;
+ }
+
+ if(sma20>sma50){
+  score+=15;
+ }
+
+ /*
+  RSI: entre -5 y +10 puntos
+ */
+
+ const rsiStatus=technicalRsiStatus(rsi);
+
+ score+=rsiStatus.score;
+
+ /*
+  Base de estabilidad: 10 puntos
+ */
+
+ score+=10;
+
+ score=Math.max(
+  0,
+  Math.min(100,score)
+ );
+
+ const longTerm=
+  price>sma200&&sma100>sma200
+   ?"Alcista"
+   :price<sma200&&sma100<sma200
+    ?"Bajista"
+    :"Neutral";
+
+ const mediumTerm=
+  price>sma50&&sma50>sma100
+   ?"Alcista"
+   :price<sma50&&sma50<sma100
+    ?"Bajista"
+    :"Neutral";
+
+ const shortTerm=
+  price>sma20&&sma20>sma50
+   ?"Alcista"
+   :price<sma20||sma20<sma50
+    ?"Correctivo"
+    :"Neutral";
+
+ const distanceSma200=
+  technicalDistance(price,sma200);
+
+ let distanceStatus="Normal";
+
+ if(distanceSma200<0){
+  distanceStatus="Debajo de SMA 200";
+ }else if(distanceSma200<=5){
+  distanceStatus="Cerca de SMA 200";
+ }else if(distanceSma200<=15){
+  distanceStatus="Extensión normal";
+ }else if(distanceSma200<=30){
+  distanceStatus="Extendido";
+ }else{
+  distanceStatus="Muy extendido";
+ }
+
+ let scoreStatus="Débil";
+
+ if(score>=80){
+  scoreStatus="Muy sólido";
+ }else if(score>=65){
+  scoreStatus="Sólido";
+ }else if(score>=50){
+  scoreStatus="Neutral";
+ }else if(score>=35){
+  scoreStatus="Débil";
+ }
+
+ return {
+  price,
+  sma20,
+  sma50,
+  sma100,
+  sma200,
+  rsi,
+  score,
+  scoreStatus,
+  longTerm,
+  mediumTerm,
+  shortTerm,
+  rsiStatus,
+  distanceSma200,
+  distanceStatus
+ };
+}
+
+function technicalInterpretation(result){
+ if(!result){
+  return "Los datos técnicos están incompletos o contienen valores inválidos.";
+ }
+
+ const paragraphs=[];
+
+ if(result.longTerm==="Alcista"){
+  paragraphs.push(
+   "La estructura de largo plazo continúa siendo alcista porque el precio permanece por encima de la SMA 200 y la SMA 100 se encuentra por encima de la SMA 200."
+  );
+ }else if(result.longTerm==="Bajista"){
+  paragraphs.push(
+   "La estructura de largo plazo es bajista porque el precio se encuentra por debajo de la SMA 200 y la SMA 100 también está por debajo de esa referencia."
+  );
+ }else{
+  paragraphs.push(
+   "La estructura de largo plazo es mixta. El precio y las medias principales todavía no presentan una alineación claramente alcista o bajista."
+  );
+ }
+
+ if(result.mediumTerm==="Alcista"){
+  paragraphs.push(
+   "El mediano plazo conserva una configuración positiva, con el precio por encima de la SMA 50 y la SMA 50 por encima de la SMA 100."
+  );
+ }else if(result.mediumTerm==="Bajista"){
+  paragraphs.push(
+   "El mediano plazo muestra deterioro, con el precio por debajo de la SMA 50 y una estructura descendente entre las medias."
+  );
+ }else{
+  paragraphs.push(
+   "El mediano plazo se encuentra en transición y no ofrece una señal direccional concluyente."
+  );
+ }
+
+ if(result.shortTerm==="Alcista"){
+  paragraphs.push(
+   "En el corto plazo existe impulso alcista porque el precio está por encima de la SMA 20 y la SMA 20 supera a la SMA 50."
+  );
+ }else if(result.shortTerm==="Correctivo"){
+  paragraphs.push(
+   "En el corto plazo el activo atraviesa una corrección o pérdida de impulso. Esto no implica por sí solo un cambio de la tendencia principal."
+  );
+ }else{
+  paragraphs.push(
+   "El corto plazo presenta una configuración neutral."
+  );
+ }
+
+ paragraphs.push(
+  `El RSI se encuentra en ${result.rsi.toFixed(2)}, clasificado como ${result.rsiStatus.label.toLowerCase()}.`
+ );
+
+ if(result.distanceSma200!==null){
+  paragraphs.push(
+   `El precio está ${result.distanceSma200>=0?"un":"un"} ${Math.abs(result.distanceSma200).toFixed(2)}% ${result.distanceSma200>=0?"por encima":"por debajo"} de la SMA 200. La posición se clasifica como ${result.distanceStatus.toLowerCase()}.`
+  );
+ }
+
+ if(
+  result.longTerm==="Alcista"&&
+  result.shortTerm==="Correctivo"
+ ){
+  paragraphs.push(
+   "La lectura combinada corresponde a una corrección de corto plazo dentro de una estructura principal todavía alcista. Una recuperación de la SMA 20 fortalecería nuevamente el impulso inmediato."
+  );
+ }
+
+ return paragraphs
+  .map(text=>`<p>${text}</p>`)
+  .join("");
+}
+
+function renderTechnicalAnalysis(){
+ const statusElement=
+  document.getElementById("technical-status");
+
+ const analysisElement=
+  document.getElementById("technical-analysis");
+
+ if(!statusElement||!analysisElement){
+  return;
+ }
+
+ const data=getTechnicalData();
+
+ if(!data){
+  statusElement.innerHTML=`
+   <p>
+    Cargá los valores técnicos para generar el análisis.
+   </p>
+  `;
+
+  analysisElement.innerHTML=`
+   <p>
+    Todavía no hay un análisis técnico guardado.
+   </p>
+  `;
+
+  return;
+ }
+
+ document.getElementById("technical-price").value=
+  data.price||"";
+
+ document.getElementById("technical-sma20").value=
+  data.sma20||"";
+
+ document.getElementById("technical-sma50").value=
+  data.sma50||"";
+
+ document.getElementById("technical-sma100").value=
+  data.sma100||"";
+
+ document.getElementById("technical-sma200").value=
+  data.sma200||"";
+
+ document.getElementById("technical-rsi").value=
+  data.rsi||"";
+
+ const result=calculateTechnicalAnalysis(data);
+
+ if(!result){
+  statusElement.innerHTML=`
+   <p class="negative">
+    Los datos guardados están incompletos o contienen valores inválidos.
+   </p>
+  `;
+
+  analysisElement.innerHTML=`
+   <p>
+    Revisá que todos los campos tengan números mayores que cero y que el RSI esté entre 0 y 100.
+   </p>
+  `;
+
+  return;
+ }
+
+ statusElement.innerHTML=`
+  <div class="metrics">
+   <div class="metric">
+    <small>Score técnico</small>
+    <strong>${result.score}/100</strong>
+   </div>
+
+   <div class="metric">
+    <small>Evaluación</small>
+    <strong>${result.scoreStatus}</strong>
+   </div>
+
+   <div class="metric">
+    <small>Largo plazo</small>
+    <strong class="${
+     result.longTerm==="Alcista"
+      ?"positive"
+      :result.longTerm==="Bajista"
+       ?"negative"
+       :"neutral"
+    }">
+     ${result.longTerm}
+    </strong>
+   </div>
+
+   <div class="metric">
+    <small>Mediano plazo</small>
+    <strong class="${
+     result.mediumTerm==="Alcista"
+      ?"positive"
+      :result.mediumTerm==="Bajista"
+       ?"negative"
+       :"neutral"
+    }">
+     ${result.mediumTerm}
+    </strong>
+   </div>
+
+   <div class="metric">
+    <small>Corto plazo</small>
+    <strong class="${
+     result.shortTerm==="Alcista"
+      ?"positive"
+      :"neutral"
+    }">
+     ${result.shortTerm}
+    </strong>
+   </div>
+
+   <div class="metric">
+    <small>RSI 14</small>
+    <strong class="${result.rsiStatus.className}">
+     ${result.rsi.toFixed(2)} · ${result.rsiStatus.label}
+    </strong>
+   </div>
+
+   <div class="metric">
+    <small>Distancia SMA 200</small>
+    <strong>
+     ${result.distanceSma200>=0?"+":""}${result.distanceSma200.toFixed(2)}%
+    </strong>
+   </div>
+
+   <div class="metric">
+    <small>Extensión</small>
+    <strong>${result.distanceStatus}</strong>
+   </div>
+  </div>
+ `;
+
+ analysisElement.innerHTML=
+  technicalInterpretation(result);
 }
 
 function pnl(asset){
@@ -503,6 +953,7 @@ const views={
   "Dashboard",
   "Resumen general"
  ],
+technical:["Análisis técnico","Interpretación de tendencias y señales"],
  portfolios:[
   "Carteras",
   "Administración de carteras"
@@ -553,6 +1004,184 @@ document.querySelectorAll(".nav").forEach(button=>{
  };
 });
 
+function render(){
+function technicalTone(value){
+ if(value==="Alcista"){
+  return "positive";
+ }
+
+ if(value==="Bajista"){
+  return "negative";
+ }
+
+ return "neutral";
+}
+
+function renderTechnicalAnalysis(){
+ const statusElement=
+  document.getElementById("technical-status");
+
+ const analysisElement=
+  document.getElementById("technical-analysis");
+
+ if(!statusElement||!analysisElement){
+  return;
+ }
+
+ const data=
+  state.technical&&state.technical.QQQ
+   ?state.technical.QQQ
+   :null;
+
+ const priceInput=
+  document.getElementById("technical-price");
+
+ const sma20Input=
+  document.getElementById("technical-sma20");
+
+ const sma50Input=
+  document.getElementById("technical-sma50");
+
+ const sma100Input=
+  document.getElementById("technical-sma100");
+
+ const sma200Input=
+  document.getElementById("technical-sma200");
+
+ const rsiInput=
+  document.getElementById("technical-rsi");
+
+ if(!data){
+  statusElement.innerHTML=`
+   <p>
+    Cargá los valores técnicos de QQQ para generar el análisis.
+   </p>
+  `;
+
+  analysisElement.innerHTML=`
+   <p>
+    Todavía no hay un análisis técnico guardado.
+   </p>
+  `;
+
+  return;
+ }
+
+ priceInput.value=data.price||"";
+ sma20Input.value=data.sma20||"";
+ sma50Input.value=data.sma50||"";
+ sma100Input.value=data.sma100||"";
+ sma200Input.value=data.sma200||"";
+ rsiInput.value=data.rsi||"";
+
+ if(
+  !window.TechnicalEngine||
+  typeof window.TechnicalEngine.analyze!=="function"
+ ){
+  statusElement.innerHTML=`
+   <p class="negative">
+    No se pudo cargar technical-engine.js.
+   </p>
+  `;
+
+  return;
+ }
+
+ const result=window.TechnicalEngine.analyze(data);
+
+ if(!result.valid){
+  statusElement.innerHTML=`
+   <p class="negative">
+    No se pudo completar el análisis.
+   </p>
+
+   <ul>
+    ${result.errors
+     .map(error=>`<li>${error}</li>`)
+     .join("")}
+   </ul>
+  `;
+
+  analysisElement.innerHTML=`
+   <p>
+    Revisá los valores ingresados.
+   </p>
+  `;
+
+  return;
+ }
+
+ statusElement.innerHTML=`
+  <div class="metrics">
+   <div class="metric">
+    <small>Score técnico</small>
+    <strong>${result.score}/100</strong>
+   </div>
+
+   <div class="metric">
+    <small>Evaluación</small>
+    <strong>${result.scoreStatus}</strong>
+   </div>
+
+   <div class="metric">
+    <small>Largo plazo</small>
+    <strong class="${technicalTone(result.longTerm)}">
+     ${result.longTerm}
+    </strong>
+   </div>
+
+   <div class="metric">
+    <small>Mediano plazo</small>
+    <strong class="${technicalTone(result.mediumTerm)}">
+     ${result.mediumTerm}
+    </strong>
+   </div>
+
+   <div class="metric">
+    <small>Corto plazo</small>
+    <strong class="${
+     result.shortTerm==="Alcista"
+      ?"positive"
+      :"neutral"
+    }">
+     ${result.shortTerm}
+    </strong>
+   </div>
+
+   <div class="metric">
+    <small>RSI 14</small>
+    <strong class="${result.rsiStatus.tone}">
+     ${result.rsi.toFixed(2)}
+     ·
+     ${result.rsiStatus.label}
+    </strong>
+   </div>
+
+   <div class="metric">
+    <small>Distancia SMA 200</small>
+    <strong>
+     ${
+      result.distanceSma200>=0
+       ?"+"
+       :""
+     }${result.distanceSma200.toFixed(2)}%
+    </strong>
+   </div>
+
+   <div class="metric">
+    <small>Extensión</small>
+    <strong>
+     ${result.extensionStatus}
+    </strong>
+   </div>
+  </div>
+ `;
+
+ analysisElement.innerHTML=
+  result.interpretation
+   .map(paragraph=>`<p>${paragraph}</p>`)
+   .join("");
+}
 function render(){
  const allAssets=assets();
 
@@ -669,6 +1298,9 @@ function render(){
 
 document.getElementById("stale-hours").value=
   state.settings.staleHours||24;
+
+renderTechnicalAnalysis();
+
 }
 
 function recentAlerts(){
@@ -1518,6 +2150,69 @@ cclRate:
   +document.getElementById("ccl-rate")
     .value
   };
+document.getElementById("save-technical").onclick=
+ ()=>{
+  const data={
+   ticker:"QQQ",
+
+   price:
+    +document
+     .getElementById("technical-price")
+     .value,
+
+   sma20:
+    +document
+     .getElementById("technical-sma20")
+     .value,
+
+   sma50:
+    +document
+     .getElementById("technical-sma50")
+     .value,
+
+   sma100:
+    +document
+     .getElementById("technical-sma100")
+     .value,
+
+   sma200:
+    +document
+     .getElementById("technical-sma200")
+     .value,
+
+   rsi:
+    +document
+     .getElementById("technical-rsi")
+     .value,
+
+   updatedAt:
+    new Date().toISOString()
+  };
+
+  const result=
+   window.TechnicalEngine.analyze(data);
+
+  if(!result.valid){
+   alert(
+    "No se pudo guardar:\n\n"+
+    result.errors.join("\n")
+   );
+
+   return;
+  }
+
+  if(!state.technical){
+   state.technical={};
+  }
+
+  state.technical.QQQ=data;
+
+  save();
+
+  alert(
+   `Análisis de QQQ guardado.\n\nScore técnico: ${result.score}/100`
+  );
+ };
 
   save();
   alert("Configuración guardada.");

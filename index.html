@@ -12,6 +12,7 @@
     <h1>TradeVision AI</h1><small>Versión 3 · memoria permanente</small>
     <nav>
       <button class="nav active" data-view="dashboard">Dashboard</button>
+<button class="nav" data-view="technical">Análisis técnico</button>
       <button class="nav" data-view="portfolios">Carteras</button>
       <button class="nav" data-view="prices">Cotizaciones</button>
       <button class="nav" data-view="movements">Movimientos</button>
@@ -39,6 +40,117 @@
       </div>
       <article class="card"><h3>Posiciones</h3><div class="table"><table id="summary"></table></div></article>
     </section>
+
+<section id="technical" class="view">
+  <article class="card">
+    <div class="cardhead">
+      <div>
+        <h3>Análisis técnico</h3>
+        <p>
+          Motor piloto de interpretación técnica. Inicialmente se utilizará QQQ.
+        </p>
+      </div>
+    </div>
+
+    <div class="notice">
+      Los valores técnicos se cargan manualmente desde TradingView.
+      TradeVision AI interpreta las medias móviles, el RSI y la estructura de tendencia.
+    </div>
+  </article>
+
+  <div class="grid2">
+    <article class="card form">
+      <h3>Datos técnicos de QQQ</h3>
+
+      <label>
+        Precio actual USD
+        <input
+          id="technical-price"
+          type="number"
+          min="0"
+          step="0.01"
+          placeholder="Ejemplo: 708.44"
+        >
+      </label>
+
+      <label>
+        SMA 20
+        <input
+          id="technical-sma20"
+          type="number"
+          min="0"
+          step="0.01"
+          placeholder="Ejemplo: 718.79"
+        >
+      </label>
+
+      <label>
+        SMA 50
+        <input
+          id="technical-sma50"
+          type="number"
+          min="0"
+          step="0.01"
+          placeholder="Ejemplo: 669.39"
+        >
+      </label>
+
+      <label>
+        SMA 100
+        <input
+          id="technical-sma100"
+          type="number"
+          min="0"
+          step="0.01"
+          placeholder="Valor de TradingView"
+        >
+      </label>
+
+      <label>
+        SMA 200
+        <input
+          id="technical-sma200"
+          type="number"
+          min="0"
+          step="0.01"
+          placeholder="Ejemplo: 616.35"
+        >
+      </label>
+
+      <label>
+        RSI 14
+        <input
+          id="technical-rsi"
+          type="number"
+          min="0"
+          max="100"
+          step="0.01"
+          placeholder="Ejemplo: 47.62"
+        >
+      </label>
+
+      <button id="save-technical">
+        Guardar y analizar QQQ
+      </button>
+    </article>
+
+    <article class="card">
+      <h3>Diagnóstico de QQQ</h3>
+
+      <div id="technical-status">
+        Cargá los valores técnicos para generar el análisis.
+      </div>
+    </article>
+  </div>
+
+  <article class="card">
+    <h3>Interpretación</h3>
+
+    <div id="technical-analysis">
+      Todavía no hay un análisis técnico guardado.
+    </div>
+  </article>
+</section>
 
     <section id="portfolios" class="view">
       <div class="toolbar"><button id="new-portfolio">Nueva cartera</button></div>
@@ -114,5 +226,6 @@
   </form>
 </dialog>
 <script src="cedears.js"></script>
+<script src="technical-engine.js"></script>
 <script src="app.js"></script>
 </body></html>
