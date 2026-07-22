@@ -6,7 +6,8 @@ const demo={
   email:"",
   senderName:"TradeVision AI",
   defaultSource:"BYMADATA Open",
-  staleHours:24
+  staleHours:24,
+  cclRate:0
  },
  portfolios:[
   {
@@ -93,7 +94,12 @@ function normalizeState(data){
  if(!next.settings){
   next.settings=structuredClone(demo.settings);
  }
-
+if(
+  typeof next.settings.cclRate!=="number" ||
+  !Number.isFinite(next.settings.cclRate)
+){
+  next.settings.cclRate=0;
+}
  if(!Array.isArray(next.portfolios)){
   next.portfolios=[];
  }
@@ -626,7 +632,10 @@ function render(){
  document.getElementById("default-source").value=
   state.settings.defaultSource||"BYMADATA Open";
 
- document.getElementById("stale-hours").value=
+ document.getElementById("ccl-rate").value=
+  state.settings.cclRate||"";
+
+document.getElementById("stale-hours").value=
   state.settings.staleHours||24;
 }
 
@@ -1428,7 +1437,11 @@ document.getElementById("save-settings").onclick=
 
    staleHours:
     +document.getElementById("stale-hours")
-     .value
+     .value,
+
+cclRate:
+  +document.getElementById("ccl-rate")
+    .value
   };
 
   save();
