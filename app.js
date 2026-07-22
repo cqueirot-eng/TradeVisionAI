@@ -1004,7 +1004,6 @@ document.querySelectorAll(".nav").forEach(button=>{
  };
 });
 
-function render(){
 function technicalTone(value){
  if(value==="Alcista"){
   return "positive";
