@@ -1821,7 +1821,7 @@ document.getElementById("save-settings").onclick=
 document.getElementById("save-technical").onclick=
  ()=>{
   const data={
-   ticker:"QQQ",
+   ticker:selectedTechnicalTicker(),
 
    price:
     +document
@@ -1873,12 +1873,12 @@ document.getElementById("save-technical").onclick=
    state.technical={};
   }
 
-  state.technical.QQQ=data;
+  state.technical[data.ticker]=data;
 
   save();
 
   alert(
-   `Análisis de QQQ guardado.\n\nScore técnico: ${result.score}/100`
+   `Análisis de ${data.ticker} guardado.\n\nScore técnico: ${result.score}/100`
   );
  };
 
