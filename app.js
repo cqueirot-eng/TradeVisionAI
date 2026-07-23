@@ -790,6 +790,9 @@ function renderTechnicalAnalysis(){
  const sma200Input=
   document.getElementById("technical-sma200");
 
+const sma400Input=
+  document.getElementById("technical-sma400");
+
  const rsiInput=
   document.getElementById("technical-rsi");
 
@@ -2187,6 +2190,82 @@ document.getElementById("save-settings").onclick=
   alert("Configuración guardada.");
  };
 
+document.getElementById("update-technical").onclick=
+ async()=>{
+  const button=
+   document.getElementById("update-technical");
+
+  const ticker=
+   selectedTechnicalTicker();
+
+  button.disabled=true;
+  button.textContent=
+   `Actualizando ${ticker}…`;
+
+  try{
+   const response=await fetch(
+    `/.netlify/functions/technical?symbol=${encodeURIComponent(ticker)}`,
+    {cache:"no-store"}
+   );
+
+   const responseData=
+    await response.json();
+
+   if(!response.ok){
+    throw new Error(
+     responseData.error||
+     "No se pudo obtener el análisis técnico."
+    );
+   }
+
+   const data=
+    responseData.technical||
+    responseData.indicators||
+    responseData;
+
+   document
+    .getElementById("technical-price")
+    .value=data.price;
+
+   document
+    .getElementById("technical-sma20")
+    .value=data.sma20;
+
+   document
+    .getElementById("technical-sma50")
+    .value=data.sma50;
+
+   document
+    .getElementById("technical-sma100")
+    .value=data.sma100;
+
+   document
+    .getElementById("technical-sma200")
+    .value=data.sma200;
+
+   document
+    .getElementById("technical-sma400")
+    .value=data.sma400;
+
+   document
+    .getElementById("technical-rsi")
+    .value=data.rsi;
+
+   alert(
+    `Datos técnicos de ${ticker} actualizados.\n\nPresioná “Guardar y analizar” para generar el diagnóstico.`
+   );
+  }catch(error){
+   console.error(error);
+
+   alert(
+    `No se pudo actualizar ${ticker}:\n\n${error.message}`
+   );
+  }finally{
+   button.disabled=false;
+   button.textContent=
+    "Actualizar análisis técnico";
+  }
+ };
 
 document.getElementById("save-technical").onclick=
  ()=>{
