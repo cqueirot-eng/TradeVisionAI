@@ -374,6 +374,79 @@ function val(asset){
  return asset.qty*asset.price;
 }
 
+function portfolioPositions(portfolioId){
+ const positions={};
+
+ state.movements
+  .filter(movement=>
+   movement.portfolio===portfolioId&&
+   ["Compra","Venta"].includes(movement.type)
+  )
+  .forEach(movement=>{
+   const ticker=String(movement.ticker||"")
+    .trim()
+    .toUpperCase();
+
+   if(!ticker||ticker==="-"){
+    return;
+   }
+
+   const qty=Number(movement.qty)||0;
+   const amount=Number(movement.amount)||0;
+   const fees=Number(movement.fees)||0;
+
+   if(!positions[ticker]){
+    positions[ticker]={
+     ticker,
+     name:ticker,
+     qty:0,
+     cost:0,
+     price:Number(
+      state.marketQuotes?.[ticker]?.price
+     )||0,
+     currency:movement.currency||"ARS",
+     updatedAt:
+      state.marketQuotes?.[ticker]?.updatedAt||""
+    };
+   }
+
+   const position=positions[ticker];
+
+   if(movement.type==="Compra"){
+    position.qty+=qty;
+    position.cost+=amount+fees;
+   }
+
+   if(movement.type==="Venta"){
+    if(position.qty<=0){
+     return;
+    }
+
+    const averageCost=
+     position.cost/position.qty;
+
+    const soldQty=Math.min(
+     qty,
+     position.qty
+    );
+
+    position.qty-=soldQty;
+    position.cost-=
+     averageCost*soldQty;
+   }
+  });
+
+ return Object.values(positions)
+  .filter(position=>position.qty>0)
+  .map(position=>({
+   ...position,
+   cost:
+    position.qty>0
+     ? position.cost/position.qty
+     : 0
+  }));
+}
+
 function assets(){
  return state.portfolios.flatMap(portfolio=>
   portfolio.assets.map((asset,index)=>({
@@ -1059,7 +1132,7 @@ function portfolioList(){
       </thead>
 
       <tbody>
-       ${portfolio.assets.map((asset,index)=>`
+       ${portfolioPositions(portfolio.id).map((asset,index)=>`
         <tr>
          <td>${asset.ticker}</td>
          <td>${asset.name}</td>
@@ -1074,13 +1147,7 @@ function portfolioList(){
           ${pnl(asset).toFixed(2)}%
          </td>
          <td>
-          <button
-           class="small secondary"
-           onclick="delAsset('${portfolio.id}',${index})"
-          >
-           ×
-          </button>
-         </td>
+          <td></td>
         </tr>
        `).join("")}
       </tbody>
