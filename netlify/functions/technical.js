@@ -11,6 +11,10 @@ function jsonResponse(statusCode, data) {
   };
 }
 
+function wait(milliseconds) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
 async function fetchIndicator({
   apiKey,
   symbol,
@@ -25,9 +29,7 @@ async function fetchIndicator({
     apikey: apiKey
   });
 
-  if (timePeriod) {
-    params.set("time_period", String(timePeriod));
-  }
+  params.set("time_period", String(timePeriod));
 
   const response = await fetch(
     `${ALPHA_VANTAGE_URL}?${params.toString()}`
@@ -62,24 +64,17 @@ async function fetchIndicator({
 
   if (!analysis || typeof analysis !== "object") {
     throw new Error(
-      `No se recibió ${functionName}${timePeriod || ""} para ${symbol}`
+      `No se recibió ${functionName}${timePeriod} para ${symbol}`
     );
   }
 
   const latestDate = Object.keys(analysis).sort().reverse()[0];
-
-  if (!latestDate) {
-    throw new Error(
-      `No hay datos disponibles para ${symbol}`
-    );
-  }
-
   const fieldName = functionName === "RSI" ? "RSI" : "SMA";
-  const value = Number(analysis[latestDate][fieldName]);
+  const value = Number(analysis[latestDate]?.[fieldName]);
 
   if (!Number.isFinite(value)) {
     throw new Error(
-      `Valor inválido de ${functionName} para ${symbol}`
+      `Valor inválido de ${functionName}${timePeriod} para ${symbol}`
     );
   }
 
@@ -115,67 +110,71 @@ exports.handler = async (event) => {
       });
     }
 
-    /*
-     * Las solicitudes se realizan en paralelo para reducir
-     * el tiempo total de ejecución de la función.
-     */
-    const [
-      sma20,
-      sma50,
-      sma100,
-      sma200,
-      sma400,
-      rsi14
-    ] = await Promise.all([
-      fetchIndicator({
-        apiKey,
-        symbol,
-        functionName: "SMA",
-        timePeriod: 20
-      }),
-      fetchIndicator({
-        apiKey,
-        symbol,
-        functionName: "SMA",
-        timePeriod: 50
-      }),
-      fetchIndicator({
-        apiKey,
-        symbol,
-        functionName: "SMA",
-        timePeriod: 100
-      }),
-      fetchIndicator({
-        apiKey,
-        symbol,
-        functionName: "SMA",
-        timePeriod: 200
-      }),
-      fetchIndicator({
-        apiKey,
-        symbol,
-        functionName: "SMA",
-        timePeriod: 400
-      }),
-      fetchIndicator({
-        apiKey,
-        symbol,
-        functionName: "RSI",
-        timePeriod: 14
-      })
-    ]);
+    const results = {};
+
+    results.sma20 = await fetchIndicator({
+      apiKey,
+      symbol,
+      functionName: "SMA",
+      timePeriod: 20
+    });
+
+    await wait(1200);
+
+    results.sma50 = await fetchIndicator({
+      apiKey,
+      symbol,
+      functionName: "SMA",
+      timePeriod: 50
+    });
+
+    await wait(1200);
+
+    results.sma100 = await fetchIndicator({
+      apiKey,
+      symbol,
+      functionName: "SMA",
+      timePeriod: 100
+    });
+
+    await wait(1200);
+
+    results.sma200 = await fetchIndicator({
+      apiKey,
+      symbol,
+      functionName: "SMA",
+      timePeriod: 200
+    });
+
+    await wait(1200);
+
+    results.sma400 = await fetchIndicator({
+      apiKey,
+      symbol,
+      functionName: "SMA",
+      timePeriod: 400
+    });
+
+    await wait(1200);
+
+    results.rsi14 = await fetchIndicator({
+      apiKey,
+      symbol,
+      functionName: "RSI",
+      timePeriod: 14
+    });
 
     return jsonResponse(200, {
       ok: true,
       symbol,
-      lastUpdated: sma20.date,
+      lastUpdated: results.sma20.date,
       indicators: {
-        sma20: sma20.value,
-        sma50: sma50.value,
-        sma100: sma100.value,
-        sma200: sma200.value,
-        sma400: sma400.value,
-        rsi14: rsi14.value
+        sma20: results.sma20.value,
+        sma50: results.sma50.value,
+        sma100: results.sma100.value,
+        sma200: results.sma200.value,
+        sma400: results.sma400.value,
+        rsi14: results.rsi14.value
       }
     });
   } catch (error) {
