@@ -1926,10 +1926,6 @@ if(
  return;
 }
 
-const amount=isTrade
- ? qty*unitPrice
- : Number(data.amount)||0;
-
 state.movements.unshift({
  ...data,
  ticker,
@@ -1940,7 +1936,8 @@ state.movements.unshift({
  amount,
  fees:Number.isFinite(fees)?fees:0
 });
-   save();
+
+save();
   }
  );
 };
