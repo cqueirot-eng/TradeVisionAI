@@ -395,20 +395,21 @@ function portfolioPositions(portfolioId){
    const amount=Number(movement.amount)||0;
    const fees=Number(movement.fees)||0;
 
-   if(!positions[ticker]){
-    positions[ticker]={
-     ticker,
-     name:ticker,
-     qty:0,
-     cost:0,
-     price:Number(
-      state.marketQuotes?.[ticker]?.price
-     )||0,
-     currency:movement.currency||"ARS",
-     updatedAt:
-      state.marketQuotes?.[ticker]?.updatedAt||""
-    };
-   }
+ if(!positions[ticker]){
+ const theoreticalPrice=
+  Number(theoreticalCedearPrice(ticker))||0;
+
+ positions[ticker]={
+  ticker,
+  name:ticker,
+  qty:0,
+  cost:0,
+  price:theoreticalPrice,
+  currency:movement.currency||"ARS",
+  updatedAt:
+   state.marketQuotes?.[ticker]?.updatedAt||""
+ };
+}
 
    const position=positions[ticker];
 
@@ -1147,8 +1148,7 @@ function portfolioList(){
            :"negative"
          }">
           ${pnl(asset).toFixed(2)}%
-         </td>
-         <td>
+                  <td>
           <td></td>
         </tr>
        `).join("")}
