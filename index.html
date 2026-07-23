@@ -130,18 +130,43 @@
         >
       </label>
 
-    <label>SMA 200</label>
-<input id="technical-sma200" type="number">
+      <label>
+        SMA 200
+        <input
+          id="technical-sma200"
+          type="number"
+          min="0"
+          step="0.01"
+          placeholder="Valor automático"
+        >
+      </label>
 
-<label>SMA 400</label>
-<input id="technical-sma400" type="number">
+      <label>
+        SMA 400
+        <input
+          id="technical-sma400"
+          type="number"
+          min="0"
+          step="0.01"
+          placeholder="Valor automático"
+        >
+      </label>
 
-<label>RSI</label>
-<input id="technical-rsi" type="number">
+      <label>
+        RSI 14
+        <input
+          id="technical-rsi"
+          type="number"
+          min="0"
+          max="100"
+          step="0.01"
+          placeholder="Valor automático"
+        >
+      </label>
 
-<button id="update-technical">
-  Actualizar análisis técnico
-</button>
+      <button id="update-technical">
+        Actualizar, guardar y analizar
+      </button>
 
       <button id="save-technical">
         Guardar y analizar QQQ

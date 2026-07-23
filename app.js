@@ -790,7 +790,7 @@ function renderTechnicalAnalysis(){
  const sma200Input=
   document.getElementById("technical-sma200");
 
-const sma400Input=
+ const sma400Input=
   document.getElementById("technical-sma400");
 
  const rsiInput=
@@ -802,7 +802,7 @@ const sma400Input=
   sma50Input.value="";
   sma100Input.value="";
   sma200Input.value="";
-sma400Input.value="";
+  sma400Input.value="";
   rsiInput.value="";
   statusElement.innerHTML=`
    <p>
@@ -824,7 +824,7 @@ sma400Input.value="";
  sma50Input.value=data.sma50||"";
  sma100Input.value=data.sma100||"";
  sma200Input.value=data.sma200||"";
-sma400Input.value=data.sma400||"";
+ sma400Input.value=data.sma400||"";
  rsiInput.value=data.rsi||"";
 
  if(
@@ -2208,68 +2208,65 @@ document.getElementById("update-technical").onclick=
     {cache:"no-store"}
    );
 
-   const responseData=
-    await response.json();
+   const responseData=await response.json();
 
-   if(!response.ok){
+   if(!response.ok||responseData.ok===false){
     throw new Error(
      responseData.error||
      "No se pudo obtener el análisis técnico."
     );
    }
 
-   const data=
+   const indicators=
     responseData.technical||
     responseData.indicators||
     responseData;
 
-console.log("Respuesta technical:", responseData);
-console.log("Datos usados:", data);
-console.log("SMA400 recibida:", data.sma400);
+   const marketPrice=Number(
+    state.marketQuotes?.[ticker]?.currentPrice
+   );
 
-  const technicalFields={
- "technical-price":data.price,
- "technical-sma20":data.sma20,
- "technical-sma50":data.sma50,
- "technical-sma100":data.sma100,
- "technical-sma200":data.sma200,
- "technical-sma400":data.sma400,
- "technical-rsi":data.rsi
-};
+   const currentPriceInput=Number(
+    document.getElementById("technical-price")?.value
+   );
 
-for(const [id,value] of Object.entries(technicalFields)){
- const input=document.getElementById(id);
+   const technicalData={
+    ticker,
+    price:Number.isFinite(marketPrice)&&marketPrice>0
+     ?marketPrice
+     :currentPriceInput,
+    sma20:Number(indicators.sma20),
+    sma50:Number(indicators.sma50),
+    sma100:Number(indicators.sma100),
+    sma200:Number(indicators.sma200),
+    sma400:Number(indicators.sma400),
+    rsi:Number(indicators.rsi??indicators.rsi14),
+    updatedAt:new Date().toISOString()
+   };
 
- if(!input){
-  throw new Error(
-   `No se encontró el campo "${id}" en index.html`
-  );
- }
+   const result=window.TechnicalEngine.analyze(
+    technicalData
+   );
 
- input.value=value??"";
-}
+   if(!result.valid){
+    throw new Error(
+     result.errors.join("\n")+
+     (technicalData.price<=0
+      ?"\nActualizá primero las cotizaciones para obtener el precio actual."
+      :"")
+    );
+   }
 
-if(!state.technical){
- state.technical={};
-}
+   if(!state.technical){
+    state.technical={};
+   }
 
-state.technical[ticker]={
- ticker,
- price:Number(data.price),
- sma20:Number(data.sma20),
- sma50:Number(data.sma50),
- sma100:Number(data.sma100),
- sma200:Number(data.sma200),
- sma400:Number(data.sma400),
- rsi:Number(data.rsi),
- updatedAt:new Date().toISOString()
-};
+   state.technical[ticker]=technicalData;
 
-save();
-renderTechnicalAnalysis();
+   save();
 
    alert(
-    `Datos técnicos de ${ticker} actualizados.\n\nPresioná “Guardar y analizar” para generar el diagnóstico.`
+    `Análisis técnico de ${ticker} actualizado y guardado.\n\nScore técnico: ${result.score}/100`
    );
   }catch(error){
    console.error(error);
@@ -2314,10 +2311,10 @@ document.getElementById("save-technical").onclick=
      .getElementById("technical-sma200")
      .value,
 
-sma400:
- +document
-  .getElementById("technical-sma400")
-  .value,
+   sma400:
+    +document
+     .getElementById("technical-sma400")
+     .value,
 
    rsi:
     +document

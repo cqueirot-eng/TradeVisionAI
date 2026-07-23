@@ -174,6 +174,7 @@ exports.handler = async (event) => {
         sma100: results.sma100.value,
         sma200: results.sma200.value,
         sma400: results.sma400.value,
+        rsi: results.rsi14.value,
         rsi14: results.rsi14.value
       }
     });
