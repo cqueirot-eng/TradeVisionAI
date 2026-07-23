@@ -2249,6 +2249,25 @@ for(const [id,value] of Object.entries(technicalFields)){
  input.value=value??"";
 }
 
+if(!state.technical){
+ state.technical={};
+}
+
+state.technical[ticker]={
+ ticker,
+ price:Number(data.price),
+ sma20:Number(data.sma20),
+ sma50:Number(data.sma50),
+ sma100:Number(data.sma100),
+ sma200:Number(data.sma200),
+ sma400:Number(data.sma400),
+ rsi:Number(data.rsi),
+ updatedAt:new Date().toISOString()
+};
+
+save();
+renderTechnicalAnalysis();
+
    alert(
     `Datos técnicos de ${ticker} actualizados.\n\nPresioná “Guardar y analizar” para generar el diagnóstico.`
    );
