@@ -1436,9 +1436,7 @@ alert(
  unitPrice:Number.isFinite(unitPrice)
   ? unitPrice
   : 0,
- amount:Number.isFinite(amount)
-  ? amount
-  : 0,
+amount:calculatedAmount,
  fees:Number.isFinite(fees)
   ? fees
   : 0,
