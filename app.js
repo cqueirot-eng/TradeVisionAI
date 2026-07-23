@@ -2033,53 +2033,153 @@ save();
  );
 };
 
+function technicalStorageTicker(ticker){
+ return String(ticker||"")
+  .trim()
+  .toUpperCase()
+  .replaceAll(".","");
+}
+
+function alertLevelFromTechnical(result){
+ if(result.rsi>=70&&result.score>=65){
+  return "Precaución · sobrecompra";
+ }
+
+ if(result.score>=80){
+  return "Compra / mantener";
+ }
+
+ if(result.score>=65){
+  return "Mantener · tendencia sólida";
+ }
+
+ if(result.score>=50){
+  return "Neutral";
+ }
+
+ if(result.score>=35){
+  return "Precaución";
+ }
+
+ return "Venta / revisar";
+}
+
+function technicalAlertText(ticker,result,portfolio){
+ const distance=result.distanceSma200===null
+  ?"sin distancia disponible"
+  :`${result.distanceSma200>=0?"+":""}${result.distanceSma200.toFixed(2)}% respecto de SMA 200`;
+
+ return [
+  `${ticker}: score técnico ${result.score}/100 (${result.scoreStatus}).`,
+  `Largo plazo ${result.longTerm.toLowerCase()}, mediano plazo ${result.mediumTerm.toLowerCase()} y corto plazo ${result.shortTerm.toLowerCase()}.`,
+  `RSI ${result.rsi.toFixed(2)} (${result.rsiStatus.label.toLowerCase()}); ${distance}.`,
+  `Cartera ${portfolio.id}.`
+ ].join(" ");
+}
+
 document.getElementById("evaluate").onclick=()=>{
- evaluate();
+ const output=evaluate();
  save();
- alert("Señales evaluadas.");
+
+ const evaluated=output.filter(item=>item.level!=="Pendiente").length;
+ const pending=output.length-evaluated;
+
+ setStatus(
+  true,
+  `Evaluación terminada: ${evaluated} activo(s) analizado(s)${pending?` y ${pending} pendiente(s) por falta de datos técnicos`:""}.`
+ );
+
+ alert(
+  `Señales actualizadas.\n\nAnalizadas: ${evaluated}\nPendientes: ${pending}`
+ );
 };
 
 function evaluate(){
- const today=
-  new Date().toISOString().slice(0,10);
+ const now=new Date();
+ const dateLabel=now.toLocaleString("es-AR",{
+  year:"numeric",
+  month:"2-digit",
+  day:"2-digit",
+  hour:"2-digit",
+  minute:"2-digit"
+ });
 
  const output=[];
+ const seen=new Set();
 
- state.portfolios.forEach(portfolio=>
+ state.portfolios.forEach(portfolio=>{
   portfolio.assets.forEach(asset=>{
-   const performance=pnl(asset);
+   const displayTicker=String(asset.ticker||"").trim().toUpperCase();
+   const storageTicker=technicalStorageTicker(displayTicker);
+   const uniqueKey=`${portfolio.id}:${storageTicker}`;
 
-   let level="Info";
+   if(seen.has(uniqueKey)){
+    return;
+   }
 
-   let text=
-    `${asset.ticker}: sin señal concluyente con la información manual disponible.`;
+   seen.add(uniqueKey);
 
-   if(performance<=-10){
-    level="Stop loss";
+   const technicalData=
+    state.technical?.[storageTicker]||
+    state.technical?.[displayTicker]||
+    null;
 
-    text=
-     `${asset.ticker}: pérdida estimada ${performance.toFixed(2)}%. Revisar mínimo anual y estrategia.`;
-   }else if(performance>=8){
-    level="Compra / mantener";
+   if(!technicalData){
+    output.push({
+     date:dateLabel,
+     level:"Pendiente",
+     ticker:displayTicker,
+     horizon:portfolio.horizon,
+     text:`${displayTicker}: todavía no tiene un análisis técnico guardado. Actualizalo desde Análisis técnico y volvé a evaluar. Cartera ${portfolio.id}.`
+    });
 
-    text=
-     `${asset.ticker}: rendimiento ${performance.toFixed(2)}%. Validar cruce de medias ${portfolio.horizon}.`;
+    return;
+   }
+
+   if(
+    !window.TechnicalEngine||
+    typeof window.TechnicalEngine.analyze!=="function"
+   ){
+    output.push({
+     date:dateLabel,
+     level:"Error",
+     ticker:displayTicker,
+     horizon:portfolio.horizon,
+     text:`${displayTicker}: no se pudo cargar el motor TechnicalEngine.`
+    });
+
+    return;
+   }
+
+   const result=window.TechnicalEngine.analyze({
+    ...technicalData,
+    ticker:displayTicker
+   });
+
+   if(!result.valid){
+    output.push({
+     date:dateLabel,
+     level:"Datos incompletos",
+     ticker:displayTicker,
+     horizon:portfolio.horizon,
+     text:`${displayTicker}: ${result.errors.join(" ")} Actualizá nuevamente el análisis técnico. Cartera ${portfolio.id}.`
+    });
+
+    return;
    }
 
    output.push({
-    date:today,
-    level,
-    ticker:asset.ticker,
+    date:dateLabel,
+    level:alertLevelFromTechnical(result),
+    ticker:displayTicker,
     horizon:portfolio.horizon,
-    text:`${text} Cartera ${portfolio.id}.`
+    score:result.score,
+    text:technicalAlertText(displayTicker,result,portfolio)
    });
-  })
- );
+  });
+ });
 
- state.alerts=[
-  ...output,
-  ...state.alerts
- ].slice(0,50);
+ state.alerts=output.slice(0,100);
 
  return output;
 }
