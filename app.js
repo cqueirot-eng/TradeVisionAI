@@ -799,6 +799,7 @@ function renderTechnicalAnalysis(){
   sma50Input.value="";
   sma100Input.value="";
   sma200Input.value="";
+sma400Input.value="";
   rsiInput.value="";
   statusElement.innerHTML=`
    <p>
@@ -820,6 +821,7 @@ function renderTechnicalAnalysis(){
  sma50Input.value=data.sma50||"";
  sma100Input.value=data.sma100||"";
  sma200Input.value=data.sma200||"";
+sma400Input.value=data.sma400||"";
  rsiInput.value=data.rsi||"";
 
  if(
@@ -2215,6 +2217,11 @@ document.getElementById("save-technical").onclick=
     +document
      .getElementById("technical-sma200")
      .value,
+
+sma400:
+ +document
+  .getElementById("technical-sma400")
+  .value,
 
    rsi:
     +document

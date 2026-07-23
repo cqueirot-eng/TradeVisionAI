@@ -71,6 +71,7 @@
    ["sma50","SMA 50"],
    ["sma100","SMA 100"],
    ["sma200","SMA 200"],
+["sma400","SMA 400"],
    ["rsi","RSI"]
   ];
 
@@ -91,30 +92,29 @@
   return errors;
  }
 
- function classifyLongTerm(values){
+function classifyLongTerm(values){
   const {
-   price,
-   sma100,
-   sma200
+    price,
+    sma200,
+    sma400
   }=values;
 
   if(
-   price>sma200&&
-   sma100>sma200
+    price>sma200 &&
+    sma200>sma400
   ){
-   return "Alcista";
+    return "Alcista";
   }
 
   if(
-   price<sma200&&
-   sma100<sma200
+    price<sma200 &&
+    sma200<sma400
   ){
-   return "Bajista";
+    return "Bajista";
   }
 
   return "Neutral";
- }
-
+}
  function classifyMediumTerm(values){
   const {
    price,
@@ -169,27 +169,27 @@
    sma20,
    sma50,
    sma100,
-   sma200
+   sma200,
+ sma400
   }=values;
 
   let score=10;
 
-  /*
-   Largo plazo: hasta 30 puntos.
-  */
+/*
+ Largo plazo: hasta 30 puntos.
+*/
 
-  if(price>sma200){
-   score+=15;
-  }
+if(price>sma200){
+ score+=10;
+}
 
-  if(sma100>sma200){
-   score+=10;
-  }
+if(sma200>sma400){
+ score+=15;
+}
 
-  if(price>sma100){
-   score+=5;
-  }
-
+if(price>sma400){
+ score+=5;
+}
   /*
    Mediano plazo: hasta 25 puntos.
   */
@@ -279,11 +279,11 @@
 
   if(result.longTerm==="Alcista"){
    paragraphs.push(
-    "La estructura de largo plazo permanece alcista: el precio está por encima de la SMA 200 y la SMA 100 continúa por encima de esa media."
+    "La estructura de largo plazo permanece alcista: el precio está por encima de la SMA 200 y la SMA 200 continúa por encima de la SMA 400."
    );
   }else if(result.longTerm==="Bajista"){
    paragraphs.push(
-    "La estructura de largo plazo es bajista: el precio está por debajo de la SMA 200 y la SMA 100 también se encuentra por debajo de esa referencia."
+   "La estructura de largo plazo es bajista: el precio está por debajo de la SMA 200 y la SMA 200 también se encuentra por debajo de la SMA 400."
    );
   }else{
    paragraphs.push(
@@ -363,6 +363,7 @@
    sma50:toNumber(data.sma50),
    sma100:toNumber(data.sma100),
    sma200:toNumber(data.sma200),
+sma400:toNumber(data.sma400),
    rsi:toNumber(data.rsi)
   };
 
