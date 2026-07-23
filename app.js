@@ -1237,6 +1237,13 @@ function movementTable(){
      <td>${movement.currency}</td>
 <td>
  <button
+  class="small"
+  onclick="editMovement(${index})"
+ >
+  Editar
+ </button>
+
+ <button
   class="small secondary"
   onclick="deleteMovement(${index})"
  >
@@ -1248,6 +1255,121 @@ function movementTable(){
   </tbody>
  `;
 }
+
+window.editMovement=index=>{
+ if(
+  !Number.isInteger(index)||
+  index<0||
+  index>=state.movements.length
+ ){
+  return;
+ }
+
+ const movement=state.movements[index];
+
+ openModal(
+  "Editar movimiento",
+  [
+   {
+    id:"date",
+    label:"Fecha",
+    type:"date",
+    value:movement.date||""
+   },
+   {
+    id:"portfolio",
+    label:"Cartera",
+    type:"select",
+    value:movement.portfolio,
+    options:state.portfolios.map(
+     portfolio=>portfolio.id
+    )
+   },
+   {
+    id:"type",
+    label:"Tipo",
+    type:"select",
+    value:movement.type,
+    options:[
+     "Compra",
+     "Venta",
+     "Depósito",
+     "Extracción"
+    ]
+   },
+   {
+    id:"ticker",
+    label:"Ticker",
+    value:movement.ticker||"-"
+   },
+   {
+    id:"qty",
+    label:"Cantidad",
+    type:"number",
+    value:movement.qty
+   },
+   {
+    id:"amount",
+    label:"Monto total",
+    type:"number",
+    value:movement.amount
+   },
+   {
+    id:"currency",
+    label:"Moneda",
+    type:"select",
+    value:movement.currency,
+    options:["ARS","USD","MEP","CCL"]
+   }
+  ],
+  data=>{
+   const ticker=
+    String(data.ticker||"-")
+     .trim()
+     .toUpperCase();
+
+   const qty=Number(data.qty);
+   const amount=Number(data.amount);
+
+   if(!data.date){
+    alert("Ingresá una fecha válida.");
+    return;
+   }
+
+   if(
+    ["Compra","Venta"].includes(data.type)&&
+    (
+     !ticker||
+     ticker==="-"||
+     !Number.isFinite(qty)||
+     qty<=0||
+     !Number.isFinite(amount)||
+     amount<=0
+    )
+   ){
+    alert(
+     "Las compras y ventas deben tener ticker, cantidad y monto mayores que cero."
+    );
+
+    return;
+   }
+
+   state.movements[index]={
+    date:data.date,
+    portfolio:data.portfolio,
+    type:data.type,
+    ticker,
+    qty:Number.isFinite(qty)?qty:0,
+    amount:Number.isFinite(amount)?amount:0,
+    currency:data.currency
+   };
+
+   save();
+
+   alert("Movimiento actualizado.");
+  }
+ );
+};
 
 window.deleteMovement=index=>{
  if(
@@ -1299,11 +1421,14 @@ function openModal(titleText,fields,callback){
      field.type==="select"
       ?`
        <select id="f-${field.id}">
-        ${field.options.map(option=>`
-         <option value="${option}">
-          ${option}
-         </option>
-        `).join("")}
+       ${field.options.map(option=>`
+ <option
+  value="${option}"
+  ${option===field.value?"selected":""}
+ >
+  ${option}
+ </option>
+`).join("")}
        </select>
       `
       :`
