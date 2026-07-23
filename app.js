@@ -2223,33 +2223,27 @@ document.getElementById("update-technical").onclick=
     responseData.indicators||
     responseData;
 
-   document
-    .getElementById("technical-price")
-    .value=data.price;
+  const technicalFields={
+ "technical-price":data.price,
+ "technical-sma20":data.sma20,
+ "technical-sma50":data.sma50,
+ "technical-sma100":data.sma100,
+ "technical-sma200":data.sma200,
+ "technical-sma400":data.sma400,
+ "technical-rsi":data.rsi
+};
 
-   document
-    .getElementById("technical-sma20")
-    .value=data.sma20;
+for(const [id,value] of Object.entries(technicalFields)){
+ const input=document.getElementById(id);
 
-   document
-    .getElementById("technical-sma50")
-    .value=data.sma50;
+ if(!input){
+  throw new Error(
+   `No se encontró el campo "${id}" en index.html`
+  );
+ }
 
-   document
-    .getElementById("technical-sma100")
-    .value=data.sma100;
-
-   document
-    .getElementById("technical-sma200")
-    .value=data.sma200;
-
-   document
-    .getElementById("technical-sma400")
-    .value=data.sma400;
-
-   document
-    .getElementById("technical-rsi")
-    .value=data.rsi;
+ input.value=value??"";
+}
 
    alert(
     `Datos técnicos de ${ticker} actualizados.\n\nPresioná “Guardar y analizar” para generar el diagnóstico.`
