@@ -1232,7 +1232,14 @@ function priceTable(){
     </tbody>
   `;
 }
+function formatMoney(value){
+ const number=Number(value)||0;
 
+ return number.toLocaleString("es-AR",{
+  minimumFractionDigits:2,
+  maximumFractionDigits:2
+ });
+}
 function movementTable(){
  document.getElementById("movements-table").innerHTML=`
   <thead>
