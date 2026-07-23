@@ -1221,11 +1221,12 @@ function movementTable(){
     <th>Cantidad</th>
     <th>Monto</th>
     <th>Moneda</th>
+<th>Acción</th>
    </tr>
   </thead>
 
   <tbody>
-   ${state.movements.map(movement=>`
+   ${state.movements.map((movement,index)=>`
     <tr>
      <td>${movement.date}</td>
      <td>${movement.portfolio}</td>
@@ -1234,11 +1235,37 @@ function movementTable(){
      <td>${movement.qty}</td>
      <td>${money(movement.amount,movement.currency)}</td>
      <td>${movement.currency}</td>
+<td>
+ <button
+  class="small secondary"
+  onclick="deleteMovement(${index})"
+ >
+  Eliminar
+ </button>
+</td>
     </tr>
    `).join("")}
   </tbody>
  `;
 }
+
+window.deleteMovement=index=>{
+ if(
+  !Number.isInteger(index)||
+  index<0||
+  index>=state.movements.length
+ ){
+  return;
+ }
+
+ if(!confirm("¿Eliminar este movimiento?")){
+  return;
+ }
+
+ state.movements.splice(index,1);
+
+ save();
+};
 
 function alertList(){
  document.getElementById("alerts-list").innerHTML=
