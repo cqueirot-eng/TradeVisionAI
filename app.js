@@ -1893,6 +1893,7 @@ const ticker=String(data.ticker||"-")
 
 const qty=Number(data.qty);
 const unitPrice=Number(data.unitPrice);
+const rawAmount=Number(data.amount);
 const fees=Number(data.fees);
 
 const isTrade=[
@@ -1900,7 +1901,7 @@ const isTrade=[
  "Venta"
 ].includes(data.type);
 
-const amount=isTrade
+const calculatedAmount=isTrade
  ? qty*unitPrice
  : Number.isFinite(rawAmount)
   ? rawAmount
@@ -1933,7 +1934,7 @@ state.movements.unshift({
  unitPrice:Number.isFinite(unitPrice)
   ? unitPrice
   : 0,
- amount,
+ amount: calculatedAmount,
  fees:Number.isFinite(fees)?fees:0
 });
 
