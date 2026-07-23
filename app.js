@@ -2290,96 +2290,165 @@ document.getElementById("save-settings").onclick=
   alert("Configuración guardada.");
  };
 
+const TECHNICAL_TICKERS=[
+ "QQQ","BRKB","DE","ECL","FSLR","GLD","IBIT","LLY",
+ "MCD","META","NEE","NTES","O","TSLA","WMT"
+];
+
+function alphaVantageTicker(ticker){
+ return ticker==="BRKB"?"BRK.B":ticker;
+}
+
+async function updateTechnicalTicker(ticker,{showAlert=true}={}){
+ const apiTicker=alphaVantageTicker(ticker);
+ const response=await fetch(
+  `/.netlify/functions/technical?symbol=${encodeURIComponent(apiTicker)}`,
+  {cache:"no-store"}
+ );
+
+ const responseData=await response.json();
+
+ if(!response.ok||responseData.ok===false){
+  const message=responseData.error||"No se pudo obtener el análisis técnico.";
+  const rateLimited=/limit|frequency|requests|25|rate/i.test(message);
+  const error=new Error(message);
+  error.rateLimited=rateLimited;
+  throw error;
+ }
+
+ const indicators=
+  responseData.technical||
+  responseData.indicators||
+  responseData;
+
+ const marketPrice=Number(
+  state.marketQuotes?.[ticker]?.currentPrice||
+  state.marketQuotes?.[apiTicker]?.currentPrice
+ );
+
+ const currentPriceInput=ticker===selectedTechnicalTicker()
+  ?Number(document.getElementById("technical-price")?.value)
+  :Number(state.technical?.[ticker]?.price);
+
+ const technicalData={
+  ticker,
+  price:Number.isFinite(marketPrice)&&marketPrice>0
+   ?marketPrice
+   :currentPriceInput,
+  sma20:Number(indicators.sma20),
+  sma50:Number(indicators.sma50),
+  sma100:Number(indicators.sma100),
+  sma200:Number(indicators.sma200),
+  sma400:Number(indicators.sma400),
+  rsi:Number(indicators.rsi??indicators.rsi14),
+  updatedAt:new Date().toISOString()
+ };
+
+ const result=window.TechnicalEngine.analyze(technicalData);
+
+ if(!result.valid){
+  throw new Error(
+   result.errors.join("\n")+
+   (technicalData.price<=0
+    ?"\nActualizá primero las cotizaciones para obtener el precio actual."
+    :"")
+  );
+ }
+
+ if(!state.technical){
+  state.technical={};
+ }
+
+ state.technical[ticker]=technicalData;
+ save();
+
+ if(ticker===selectedTechnicalTicker()){
+  renderTechnicalAnalysis();
+ }
+
+ if(showAlert){
+  alert(
+   `Análisis técnico de ${ticker} actualizado y guardado.\n\nScore técnico: ${result.score}/100`
+  );
+ }
+
+ return result;
+}
+
 document.getElementById("update-technical").onclick=
  async()=>{
-  const button=
-   document.getElementById("update-technical");
-
-  const ticker=
-   selectedTechnicalTicker();
+  const button=document.getElementById("update-technical");
+  const ticker=selectedTechnicalTicker();
 
   button.disabled=true;
-  button.textContent=
-   `Actualizando ${ticker}…`;
+  button.textContent=`Actualizando ${ticker}…`;
 
   try{
-   const response=await fetch(
-    `/.netlify/functions/technical?symbol=${encodeURIComponent(ticker)}`,
-    {cache:"no-store"}
-   );
-
-   const responseData=await response.json();
-
-   if(!response.ok||responseData.ok===false){
-    throw new Error(
-     responseData.error||
-     "No se pudo obtener el análisis técnico."
-    );
-   }
-
-   const indicators=
-    responseData.technical||
-    responseData.indicators||
-    responseData;
-
-   const marketPrice=Number(
-    state.marketQuotes?.[ticker]?.currentPrice
-   );
-
-   const currentPriceInput=Number(
-    document.getElementById("technical-price")?.value
-   );
-
-   const technicalData={
-    ticker,
-    price:Number.isFinite(marketPrice)&&marketPrice>0
-     ?marketPrice
-     :currentPriceInput,
-    sma20:Number(indicators.sma20),
-    sma50:Number(indicators.sma50),
-    sma100:Number(indicators.sma100),
-    sma200:Number(indicators.sma200),
-    sma400:Number(indicators.sma400),
-    rsi:Number(indicators.rsi??indicators.rsi14),
-    updatedAt:new Date().toISOString()
-   };
-
-   const result=window.TechnicalEngine.analyze(
-    technicalData
-   );
-
-   if(!result.valid){
-    throw new Error(
-     result.errors.join("\n")+
-     (technicalData.price<=0
-      ?"\nActualizá primero las cotizaciones para obtener el precio actual."
-      :"")
-    );
-   }
-
-   if(!state.technical){
-    state.technical={};
-   }
-
-   state.technical[ticker]=technicalData;
-
-   save();
-
-   alert(
-    `Análisis técnico de ${ticker} actualizado y guardado.\n\nScore técnico: ${result.score}/100`
-   );
+   await updateTechnicalTicker(ticker);
   }catch(error){
    console.error(error);
-
-   alert(
-    `No se pudo actualizar ${ticker}:\n\n${error.message}`
-   );
+   alert(`No se pudo actualizar ${ticker}:\n\n${error.message}`);
   }finally{
    button.disabled=false;
-   button.textContent=
-    "Actualizar análisis técnico";
+   button.textContent="Actualizar, guardar y analizar";
   }
  };
+
+const updateAllTechnicalButton=
+ document.getElementById("update-all-technical");
+
+if(updateAllTechnicalButton){
+ updateAllTechnicalButton.onclick=async()=>{
+  const status=document.getElementById("technical-batch-status");
+  const pending=TECHNICAL_TICKERS.filter(ticker=>!state.technical?.[ticker]);
+  const batch=pending.slice(0,4);
+
+  if(!batch.length){
+   status.textContent="Los 15 activos ya tienen análisis técnico guardado.";
+   alert("No quedan activos pendientes de actualización técnica.");
+   return;
+  }
+
+  updateAllTechnicalButton.disabled=true;
+  let completed=0;
+  const failures=[];
+
+  try{
+   for(const ticker of batch){
+    status.textContent=`Actualizando ${ticker} (${completed+1}/${batch.length})…`;
+
+    try{
+     await updateTechnicalTicker(ticker,{showAlert:false});
+     completed+=1;
+    }catch(error){
+     console.error(`Error actualizando ${ticker}:`,error);
+     failures.push(`${ticker}: ${error.message}`);
+
+     if(error.rateLimited){
+      status.textContent="Alpha Vantage alcanzó el límite diario. Continuá mañana.";
+      break;
+     }
+    }
+
+    await new Promise(resolve=>setTimeout(resolve,1500));
+   }
+
+   renderTechnicalAnalysis();
+
+   const remaining=TECHNICAL_TICKERS.filter(ticker=>!state.technical?.[ticker]).length;
+   status.textContent=
+    `Tanda finalizada: ${completed} actualizado(s), ${remaining} pendiente(s).`+
+    (failures.length?" Revisá el detalle mostrado.":"");
+
+   alert(
+    `Actualización por tandas terminada.\n\nActualizados: ${completed}\nPendientes: ${remaining}`+
+    (failures.length?`\n\nErrores:\n${failures.join("\n")}`:"")
+   );
+  }finally{
+   updateAllTechnicalButton.disabled=false;
+  }
+ };
+}
 
 document.getElementById("save-technical").onclick=
  ()=>{

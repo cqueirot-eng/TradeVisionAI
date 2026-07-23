@@ -47,14 +47,14 @@
       <div>
         <h3>Análisis técnico</h3>
         <p>
-          Motor piloto de interpretación técnica. Inicialmente se utilizará QQQ.
+          Análisis técnico automático para los 15 activos configurados.
         </p>
       </div>
     </div>
 
     <div class="notice">
-      Los valores técnicos se cargan manualmente desde TradingView.
-      TradeVision AI interpreta las medias móviles, el RSI y la estructura de tendencia.
+      TradeVision AI obtiene SMA 20, 50, 100, 200, 400 y RSI 14 desde Alpha Vantage.
+      Podés actualizar un activo o avanzar por tandas con “Actualizar pendientes”.
     </div>
   </article>
 
@@ -167,6 +167,14 @@
       <button id="update-technical">
         Actualizar, guardar y analizar
       </button>
+
+      <button id="update-all-technical" type="button">
+        Actualizar pendientes (máx. 4)
+      </button>
+
+      <p id="technical-batch-status" class="muted">
+        La cuenta gratuita permite 25 consultas diarias. Cada activo usa 6 consultas.
+      </p>
 
       <button id="save-technical">
         Guardar y analizar QQQ
