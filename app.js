@@ -1402,6 +1402,17 @@ const unitPrice=Number(data.unitPrice);
 const rawAmount=Number(data.amount);
 const fees=Number(data.fees);
 
+const isTrade=[
+ "Compra",
+ "Venta"
+].includes(data.type);
+
+const calculatedAmount=isTrade
+ ? qty*unitPrice
+ : Number.isFinite(rawAmount)
+  ? rawAmount
+  : 0;
+
    if(!data.date){
     alert("Ingresá una fecha válida.");
     return;
