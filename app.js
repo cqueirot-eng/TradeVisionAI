@@ -2223,6 +2223,10 @@ document.getElementById("update-technical").onclick=
     responseData.indicators||
     responseData;
 
+console.log("Respuesta technical:", responseData);
+console.log("Datos usados:", data);
+console.log("SMA400 recibida:", data.sma400);
+
   const technicalFields={
  "technical-price":data.price,
  "technical-sma20":data.sma20,
