@@ -449,13 +449,15 @@ function portfolioPositions(portfolioId){
 
 function assets(){
  return state.portfolios.flatMap(portfolio=>
-  portfolio.assets.map((asset,index)=>({
-   ...asset,
-   pid:portfolio.id,
-   pname:portfolio.name,
-   horizon:portfolio.horizon,
-   index
-  }))
+  portfolioPositions(portfolio.id).map(
+   (asset,index)=>({
+    ...asset,
+    pid:portfolio.id,
+    pname:portfolio.name,
+    horizon:portfolio.horizon,
+    index
+   })
+  )
  );
 }
 
