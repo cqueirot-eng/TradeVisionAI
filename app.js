@@ -165,6 +165,29 @@ if(!Array.isArray(next.portfolios)){
   next.movements=[];
  }
 
+next.movements.forEach(movement=>{
+ if(
+  typeof movement.fees!=="number"||
+  !Number.isFinite(movement.fees)
+ ){
+  movement.fees=0;
+ }
+
+if(
+ typeof movement.unitPrice!=="number"||
+ !Number.isFinite(movement.unitPrice)
+){
+ const qty=Number(movement.qty)||0;
+ const amount=Number(movement.amount)||0;
+
+ movement.unitPrice=
+  qty>0
+   ? amount/qty
+   : 0;
+}
+
+});
+
  if(!Array.isArray(next.alerts)){
   next.alerts=[];
  }
@@ -1213,28 +1236,53 @@ function priceTable(){
 function movementTable(){
  document.getElementById("movements-table").innerHTML=`
   <thead>
-   <tr>
-    <th>Fecha</th>
-    <th>Cartera</th>
-    <th>Tipo</th>
-    <th>Ticker</th>
-    <th>Cantidad</th>
-    <th>Monto</th>
-    <th>Moneda</th>
-<th>Acción</th>
-   </tr>
-  </thead>
+ <tr>
+  <th>Fecha</th>
+  <th>Cartera</th>
+  <th>Tipo</th>
+  <th>Ticker</th>
+ <th>Cantidad</th>
+<th>Precio unitario</th>
+<th>Monto bruto</th>
+<th>Costos</th>
+<th>Total operación</th>
+  <th>Moneda</th>
+  <th>Acciones</th>
+ </tr>
+</thead>
 
   <tbody>
-   ${state.movements.map((movement,index)=>`
-    <tr>
+   ${state.movements.map((movement,index)=>{
+ const amount=Number(movement.amount)||0;
+ const fees=Number(movement.fees)||0;
+const qty=Number(movement.qty)||0;
+
+const unitPrice=
+ Number(movement.unitPrice)||
+ (qty>0 ? amount/qty : 0);
+
+ let total=amount;
+
+ if(movement.type==="Compra"){
+  total=amount+fees;
+ }
+
+ if(movement.type==="Venta"){
+  total=amount-fees;
+ }
+
+ return `
+ <tr>
      <td>${movement.date}</td>
      <td>${movement.portfolio}</td>
      <td>${movement.type}</td>
      <td>${movement.ticker}</td>
-     <td>${movement.qty}</td>
-     <td>${money(movement.amount,movement.currency)}</td>
-     <td>${movement.currency}</td>
+     <td>${qty}</td>
+<td>${formatMoney(unitPrice)}</td>
+<td>${formatMoney(amount)}</td>
+<td>${formatMoney(fees)}</td>
+<td>${formatMoney(total)}</td>
+<td>${movement.currency}</td>
 <td>
  <button
   class="small"
@@ -1250,8 +1298,10 @@ function movementTable(){
   Eliminar
  </button>
 </td>
-    </tr>
-   `).join("")}
+   
+ </tr>
+ `;
+}).join("")}
   </tbody>
  `;
 }
@@ -1308,14 +1358,26 @@ window.editMovement=index=>{
     type:"number",
     value:movement.qty
    },
-   {
-    id:"amount",
-    label:"Monto total",
-    type:"number",
-    value:movement.amount
-   },
-   {
-    id:"currency",
+  {
+ id:"unitPrice",
+ label:"Precio unitario",
+ type:"number",
+ value:movement.unitPrice||0
+},
+{
+ id:"amount",
+ label:"Monto — solo depósito o extracción",
+ type:"number",
+ value:movement.amount||0
+},
+{
+ id:"fees",
+ label:"Costos de operación",
+ type:"number",
+ value:movement.fees||0
+},
+{
+ id:"currency",
     label:"Moneda",
     type:"select",
     value:movement.currency,
@@ -1328,8 +1390,10 @@ window.editMovement=index=>{
      .trim()
      .toUpperCase();
 
-   const qty=Number(data.qty);
-   const amount=Number(data.amount);
+const qty=Number(data.qty);
+const unitPrice=Number(data.unitPrice);
+const rawAmount=Number(data.amount);
+const fees=Number(data.fees);
 
    if(!data.date){
     alert("Ingresá una fecha válida.");
@@ -1343,26 +1407,36 @@ window.editMovement=index=>{
      ticker==="-"||
      !Number.isFinite(qty)||
      qty<=0||
-     !Number.isFinite(amount)||
-     amount<=0
+     !Number.isFinite(unitPrice)||
+unitPrice<=0||
+  !Number.isFinite(fees)||
+  fees<0
     )
    ){
-    alert(
-     "Las compras y ventas deben tener ticker, cantidad y monto mayores que cero."
-    );
+alert(
+ "Las compras y ventas deben tener ticker, cantidad y monto mayores que cero. Los costos no pueden ser negativos."
+);  
 
     return;
    }
 
-   state.movements[index]={
-    date:data.date,
-    portfolio:data.portfolio,
-    type:data.type,
-    ticker,
-    qty:Number.isFinite(qty)?qty:0,
-    amount:Number.isFinite(amount)?amount:0,
-    currency:data.currency
-   };
+  state.movements[index]={
+ date:data.date,
+ portfolio:data.portfolio,
+ type:data.type,
+ ticker,
+ qty:Number.isFinite(qty)?qty:0,
+ unitPrice:Number.isFinite(unitPrice)
+  ? unitPrice
+  : 0,
+ amount:Number.isFinite(amount)
+  ? amount
+  : 0,
+ fees:Number.isFinite(fees)
+  ? fees
+  : 0,
+ currency:data.currency
+};
 
    save();
 
@@ -1789,10 +1863,22 @@ document.getElementById("new-movement").onclick=()=>{
     type:"number"
    },
    {
-    id:"amount",
-    label:"Monto",
+    id:"unitPrice",
+ label:"Precio unitario",
     type:"number"
    },
+{
+ id:"amount",
+ label:"Monto — solo depósito o extracción",
+ type:"number",
+ value:"0"
+},
+{
+ id:"fees",
+ label:"Costos de operación",
+ type:"number",
+ value:"0"
+},
    {
     id:"currency",
     label:"Moneda",
@@ -1801,12 +1887,59 @@ document.getElementById("new-movement").onclick=()=>{
    }
   ],
   data=>{
-   state.movements.unshift({
-    ...data,
-    qty:+data.qty,
-    amount:+data.amount
-   });
+const ticker=String(data.ticker||"-")
+ .trim()
+ .toUpperCase();
 
+const qty=Number(data.qty);
+const unitPrice=Number(data.unitPrice);
+const fees=Number(data.fees);
+
+const isTrade=[
+ "Compra",
+ "Venta"
+].includes(data.type);
+
+const amount=isTrade
+ ? qty*unitPrice
+ : Number.isFinite(rawAmount)
+  ? rawAmount
+  : 0;
+
+if(
+ isTrade&&
+ (
+  !ticker||
+  ticker==="-"||
+  !Number.isFinite(qty)||
+  qty<=0||
+  !Number.isFinite(unitPrice)||
+  unitPrice<=0||
+  !Number.isFinite(fees)||
+  fees<0
+ )
+){
+ alert(
+  "Las compras y ventas deben tener ticker, cantidad y precio unitario mayores que cero. Los costos no pueden ser negativos."
+ );
+
+ return;
+}
+
+const amount=isTrade
+ ? qty*unitPrice
+ : Number(data.amount)||0;
+
+state.movements.unshift({
+ ...data,
+ ticker,
+ qty:Number.isFinite(qty)?qty:0,
+ unitPrice:Number.isFinite(unitPrice)
+  ? unitPrice
+  : 0,
+ amount,
+ fees:Number.isFinite(fees)?fees:0
+});
    save();
   }
  );
